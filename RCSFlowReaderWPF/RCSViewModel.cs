@@ -47,8 +47,8 @@ namespace RCSFlowReaderWPF
 
     class RCSViewModel : DependencyObject
     {
+        private readonly string _allowedTicketTypes = "SDS SDR FDS FDR CDS CDR SVR OPB SOR FOR PBD PB7 FFX FSL";
         Dictionary<Flow, Dictionary<string, List<FF>>> flowdic = new Dictionary<Flow, Dictionary<string, List<FF>>>();
-      
         public bool FlowDone
         {
             get { return (bool)GetValue(FlowDoneProperty); }
@@ -58,8 +58,6 @@ namespace RCSFlowReaderWPF
         // Using a DependencyProperty as the backing store for FlowDone.  This enables animation, styling, binding, etc...
         public static readonly DependencyProperty FlowDoneProperty =
             DependencyProperty.Register("FlowDone", typeof(bool), typeof(RCSViewModel), new PropertyMetadata(false));
-
-
 
         public int FElementTotalCount
         {
@@ -77,7 +75,6 @@ namespace RCSFlowReaderWPF
             set { SetValue(FElementRelevantCountProperty, value); }
         }
 
-        // Using a DependencyProperty as the backing store for FElementRelevantCount.  This enables animation, styling, binding, etc...
         public static readonly DependencyProperty FElementRelevantCountProperty =
             DependencyProperty.Register("FElementRelevantCount", typeof(int), typeof(RCSViewModel), new PropertyMetadata(0));
 
@@ -87,13 +84,24 @@ namespace RCSFlowReaderWPF
             set { SetValue(TElementCountProperty, value); }
         }
 
-        // Using a DependencyProperty as the backing store for TElementCount.  This enables animation, styling, binding, etc...
         public static readonly DependencyProperty TElementCountProperty =
             DependencyProperty.Register("TElementCount", typeof(int), typeof(RCSViewModel), new PropertyMetadata(0));
+
+        public long MemoryUsage
+        {
+            get { return (long)GetValue(MemoryUsageProperty); }
+            set { SetValue(MemoryUsageProperty, value); }
+        }
+
+        // Using a DependencyProperty as the backing store for MemoryUsage.  This enables animation, styling, binding, etc...
+        public static readonly DependencyProperty MemoryUsageProperty =
+            DependencyProperty.Register("MemoryUsage", typeof(long), typeof(RCSViewModel), new PropertyMetadata(0L));
+
 
         enum RCSFlowStates { Init, RCSFlowData, Header, FlowData, F, T, FF, };
         private async Task<int> ReadRCSFlowInfo()
         {
+            var ticketTypes = new HashSet<string>(_allowedTicketTypes.Split());
             FElementTotalCount = FElementRelevantCount = TElementCount = 0;
             using (var streamreader = new StreamReader("s:/RCS_R_F_170108_00555.xml"))
             {
@@ -123,12 +131,18 @@ namespace RCSFlowReaderWPF
                         else if (xr.Name == "T")
                         {
                             TElementCount++;
+                            // skip all child elements if ticket type is not in the allowed list:
                             ticketType = xr.GetAttribute("t");
+                            if (!ticketTypes.Contains(ticketType))
+                            {
+                                xr.Skip();
+                            }
                         }
                         else if (xr.Name == "FF")
                         {
                             if (xr.HasAttributes)
                             {
+                                var wonkatt = xr.GetAttribute("wonk");
                                 var fmatt = xr.GetAttribute("fm");
                                 var key = xr.GetAttribute("k");
                                 if (fmatt != null && key != null && fmatt == "00001")
@@ -201,11 +215,43 @@ namespace RCSFlowReaderWPF
         private async void StartRead()
         {
             await ReadRCSFlowInfo();
+            using (var stream = new StreamWriter("s:/output2.xml"))
+            {
+                foreach (var flow in flowdic)
+                {
+                    stream.WriteLine($"<F i=\"I\" r=\"{flow.Key.Route}\" o=\"{flow.Key.Origin}\" d=\"{flow.Key.Destination}>\" ");
+                    foreach (var ticket in flow.Value)
+                    {
+                        stream.WriteLine($"    <T t=\"{ticket.Key}\">");
+                        foreach (var ff in ticket.Value)
+                        {
+                            var quoteDate = ff.QuoteDate == null ? "" : $"p=\"{ff.QuoteDate:yymmdd}\" ";
+                            var key = ff.Key == null ? "" : $"k=\"{ff.Key}\" ";
+                            var season = ff.SeasonDetails == null ? "" : $"s=\"{ff.SeasonDetails}\" ";
+                            // u f s p k fm
+                            stream.WriteLine($"        <FF u=\"{ff.EndDate:yymmdd}\" f=\"{ff.StartDate:yymmdd}\" {season}{quoteDate}{key}fm=\"00001\"/>");
+                        }
+                        stream.WriteLine("    </T>");
+                    }
+                    stream.WriteLine("</F>");
+                }
+            }
             FlowDone = true;
         }
 
         public RCSViewModel()
         {
+            // start a timer to update memory usage property once per second:
+            var timer = new System.Windows.Threading.DispatcherTimer
+            {
+                Interval = new TimeSpan(0, 0, 1)
+            };
+            timer.Tick += (s, e) =>
+            {
+                // update memory usage dependency property with number of megabytes used:
+                MemoryUsage = System.Diagnostics.Process.GetCurrentProcess().WorkingSet64 / 1024 / 1024;
+            };
+            timer.Start();
             StartRead();
         }
     }

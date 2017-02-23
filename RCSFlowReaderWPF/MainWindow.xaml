@@ -19,11 +19,14 @@
 
             <StackPanel Orientation="Horizontal">
                 <TextBlock Text="Number of T Elements" HorizontalAlignment="Center"/>
-                <TextBlock Margin="10,0,0,0" Text="{Binding TElementCount}" HorizontalAlignment="Center"/>
+                <TextBlock Margin="10,0,0,0" Text="{Binding TElementCount, StringFormat={}{0:n0}}" HorizontalAlignment="Center"/>
             </StackPanel>
-
-
+            
             <TextBlock Text="{Binding FlowDone}"/>
+
+            <StackPanel>
+                <TextBlock Text="{Binding MemoryUsage, StringFormat=Memory Usage: {0} MB}"/>
+            </StackPanel>
         </StackPanel>
     </Grid>
 </Window>
