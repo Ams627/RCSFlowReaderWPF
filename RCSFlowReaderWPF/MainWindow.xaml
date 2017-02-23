@@ -10,12 +10,20 @@
         <local:RCSViewModel/>
     </Window.DataContext>
     <Grid>
-        <StackPanel>
+        <StackPanel Margin="0,18,0.4,-17.6">
             <StackPanel Orientation="Horizontal">
-                <TextBlock Text="Number of F Elements" Margin="0,-1,0,0.8"/>
-                <TextBlock Margin="10,0,0,0" Text="{Binding FElementCount}"/>
+                <TextBlock Text="Number of F Elements" HorizontalAlignment="Center"/>
+                <TextBlock Margin="10,0,0,0" Text="{Binding FElementRelevantCount}" HorizontalAlignment="Center"/>
+                <TextBlock Margin="10,0,0,0" Text="{Binding FElementTotalCount}" HorizontalAlignment="Center"/>
             </StackPanel>
-            <TextBox Text="Wonk"/>
+
+            <StackPanel Orientation="Horizontal">
+                <TextBlock Text="Number of T Elements" HorizontalAlignment="Center"/>
+                <TextBlock Margin="10,0,0,0" Text="{Binding TElementCount}" HorizontalAlignment="Center"/>
+            </StackPanel>
+
+
+            <TextBlock Text="{Binding FlowDone}"/>
         </StackPanel>
     </Grid>
 </Window>
