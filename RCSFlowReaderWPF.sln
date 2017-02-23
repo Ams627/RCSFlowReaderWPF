@@ -1,0 +1,21 @@
+﻿Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio 14
+VisualStudioVersion = 14.0.25420.0
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RCSFlowReaderWPF", "RCSFlowReaderWPF\RCSFlowReaderWPF.csproj", "{3F66BD57-0248-4EF3-954C-01D82F47924D}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{3F66BD57-0248-4EF3-954C-01D82F47924D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{3F66BD57-0248-4EF3-954C-01D82F47924D}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{3F66BD57-0248-4EF3-954C-01D82F47924D}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{3F66BD57-0248-4EF3-954C-01D82F47924D}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+EndGlobal
