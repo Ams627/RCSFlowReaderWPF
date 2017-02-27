@@ -32,7 +32,7 @@ namespace RCSFlowReaderWPF
         /// <summary>
         /// p attribute
         /// </summary>
-        public DateTime QuoteDate { get; set; }
+        public DateTime? QuoteDate { get; set; }
 
         /// <summary>
         /// k attribute
@@ -47,7 +47,11 @@ namespace RCSFlowReaderWPF
 
     class RCSViewModel : DependencyObject
     {
-        private readonly string _allowedTicketTypes = "SDS SDR FDS FDR CDS CDR SVR OPB SOR FOR PBD PB7 FFX FSL";
+        private readonly string _allowedTicketTypes = "MCA MCM MCQ MCW";
+        //private readonly string _allowedTicketTypes = "SDS SDR FDS FDR CDS CDR SVR OPB SOR FOR PBD PB7 FFX FSL";
+        //  MCA MCM MCQ MCW
+
+
         Dictionary<Flow, Dictionary<string, List<FF>>> flowdic = new Dictionary<Flow, Dictionary<string, List<FF>>>();
         public bool FlowDone
         {
@@ -98,14 +102,26 @@ namespace RCSFlowReaderWPF
             DependencyProperty.Register("MemoryUsage", typeof(long), typeof(RCSViewModel), new PropertyMetadata(0L));
 
 
+        DateTime? GetDate(string rcsDate)
+        {
+            DateTime? result = null;
+            var parseResult = DateTime.TryParseExact("20" + rcsDate, "yyyymmdd", CultureInfo.InvariantCulture, DateTimeStyles.None, out var d);
+            if (parseResult)
+            {
+                result = d;
+            }
+            return result;
+        }
+
+
         enum RCSFlowStates { Init, RCSFlowData, Header, FlowData, F, T, FF, };
         private async Task<int> ReadRCSFlowInfo()
         {
             var ticketTypes = new HashSet<string>(_allowedTicketTypes.Split());
             FElementTotalCount = FElementRelevantCount = TElementCount = 0;
-            using (var streamreader = new StreamReader("s:/RCS_R_F_170108_00555.xml"))
+            using (var streamreader = new StreamReader("s:/northern.xml"))
             {
-                var xr = XmlTextReader.Create(streamreader, new XmlReaderSettings { Async = true });
+                var xr = XmlReader.Create(streamreader, new XmlReaderSettings { Async = true });
                 xr.MoveToContent();
 
                 int fm1Count = 0;
@@ -148,51 +164,39 @@ namespace RCSFlowReaderWPF
                                 if (fmatt != null && key != null && fmatt == "00001")
                                 {
                                     fm1Count++;
-
-                                    DateTime endDate, startDate, quoteDate;
-
-                                    var rawdate = "20" + xr.GetAttribute("u");
-                                    if (DateTime.TryParseExact(rawdate, "yyyymmdd", CultureInfo.InvariantCulture, DateTimeStyles.None, out endDate))
+                                    var endDate = GetDate(xr.GetAttribute("u"));
+                                    var startDate = GetDate(xr.GetAttribute("f"));
+                                    var quoteDate = GetDate(xr.GetAttribute("p"));
+                                    if (endDate == null)
                                     {
-                                        if (endDate.Date >= DateTime.Now.Date)
-                                        {
-                                            rawdate = "20" + xr.GetAttribute("f");
-                                            if (DateTime.TryParseExact(rawdate, "yyyymmdd", CultureInfo.InvariantCulture, DateTimeStyles.None, out startDate))
-                                            {
-                                                var pattribute = xr.GetAttribute("p");
-                                                if (string.IsNullOrWhiteSpace(pattribute))
-                                                {
-                                                    quoteDate = DateTime.Now;
-                                                }
-                                                else
-                                                {
-                                                    rawdate = "20" + pattribute;
-                                                    if (!DateTime.TryParseExact(rawdate, "yyyymmdd", CultureInfo.InvariantCulture, DateTimeStyles.None, out quoteDate))
-                                                    {
-                                                        quoteDate = DateTime.Now;
-                                                    }
-                                                }
-                                                var season = xr.GetAttribute("s");
-                                                var ff = new FF
-                                                {
-                                                    EndDate = endDate,
-                                                    StartDate = startDate,
-                                                    QuoteDate = quoteDate,
-                                                    SeasonDetails = season,
-                                                    Key = key
-                                                };
-                                                if (!flowdic.ContainsKey(flow))
-                                                {
-                                                    flowdic[flow] = new Dictionary<string, List<FF>>();
-                                                }
-                                                if (!flowdic[flow].ContainsKey(ticketType))
-                                                {
-                                                    flowdic[flow][ticketType] = new List<FF>();
-                                                }
-                                                flowdic[flow][ticketType].Add(ff);
-                                            }
-                                        }
+                                        var endDate2 = GetDate(xr.GetAttribute("u"));
+                                        IXmlLineInfo xli = (IXmlLineInfo)xr;
+                                        throw new Exception($"Syntax error in file - end date must be specified (line {xli.LineNumber})");
                                     }
+                                    if (startDate== null)
+                                    {
+                                        IXmlLineInfo xli = (IXmlLineInfo)xr;
+                                        throw new Exception($"Syntax error in file - start date must be specified (line {xli.LineNumber})");
+                                    }
+
+                                    var season = xr.GetAttribute("s");
+                                    var ff = new FF
+                                    {
+                                        EndDate = endDate ?? DateTime.MinValue,
+                                        StartDate = startDate ?? DateTime.MinValue,
+                                        QuoteDate = quoteDate,
+                                        SeasonDetails = season,
+                                        Key = key
+                                    };
+                                    if (!flowdic.ContainsKey(flow))
+                                    {
+                                        flowdic[flow] = new Dictionary<string, List<FF>>();
+                                    }
+                                    if (!flowdic[flow].ContainsKey(ticketType))
+                                    {
+                                        flowdic[flow][ticketType] = new List<FF>();
+                                    }
+                                    flowdic[flow][ticketType].Add(ff);
                                 }
                             }
                         }
@@ -214,12 +218,12 @@ namespace RCSFlowReaderWPF
         }
         private async void StartRead()
         {
-            await ReadRCSFlowInfo();
+           await ReadRCSFlowInfo();
             using (var stream = new StreamWriter("s:/output2.xml"))
             {
                 foreach (var flow in flowdic)
                 {
-                    stream.WriteLine($"<F i=\"I\" r=\"{flow.Key.Route}\" o=\"{flow.Key.Origin}\" d=\"{flow.Key.Destination}>\" ");
+                    stream.WriteLine($"<F i=\"I\" r=\"{flow.Key.Route}\" o=\"{flow.Key.Origin}\" d=\"{flow.Key.Destination}\">");
                     foreach (var ticket in flow.Value)
                     {
                         stream.WriteLine($"    <T t=\"{ticket.Key}\">");
