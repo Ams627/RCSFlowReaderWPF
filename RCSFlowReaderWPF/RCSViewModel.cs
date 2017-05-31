@@ -6,6 +6,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows;
+using System.Windows.Threading;
 using System.Xml;
 
 namespace RCSFlowReaderWPF
@@ -47,7 +48,7 @@ namespace RCSFlowReaderWPF
 
     class RCSViewModel : DependencyObject
     {
-        private readonly string _allowedTicketTypes = "MCA MCM MCQ MCW";
+        private readonly string _allowedTicketTypes = "7DS 7DF PSS PSF SDS SDR FDS FDR CDS CDR SVR OPB SOR FOR PBD PB7 FFX FSX F1L FSL VA1";
         //private readonly string _allowedTicketTypes = "SDS SDR FDS FDR CDS CDR SVR OPB SOR FOR PBD PB7 FFX FSL";
         //  MCA MCM MCQ MCW
 
@@ -114,12 +115,25 @@ namespace RCSFlowReaderWPF
         }
 
 
+        private DateTime _startTime;
+
+
+
+        public int Seconds
+        {
+            get { return (int)GetValue(SecondsProperty); }
+            set { SetValue(SecondsProperty, value); }
+        }
+
+        public static readonly DependencyProperty SecondsProperty =
+            DependencyProperty.Register("Seconds", typeof(int), typeof(RCSViewModel), new PropertyMetadata(0));
+
         enum RCSFlowStates { Init, RCSFlowData, Header, FlowData, F, T, FF, };
         private async Task<int> ReadRCSFlowInfo()
         {
             var ticketTypes = new HashSet<string>(_allowedTicketTypes.Split());
             FElementTotalCount = FElementRelevantCount = TElementCount = 0;
-            using (var streamreader = new StreamReader("s:/northern.xml"))
+            using (var streamreader = new StreamReader("s:/RCS_R_F_170528_00575.xml"))
             {
                 var xr = XmlReader.Create(streamreader, new XmlReaderSettings { Async = true });
                 xr.MoveToContent();
@@ -158,7 +172,6 @@ namespace RCSFlowReaderWPF
                         {
                             if (xr.HasAttributes)
                             {
-                                var wonkatt = xr.GetAttribute("wonk");
                                 var fmatt = xr.GetAttribute("fm");
                                 var key = xr.GetAttribute("k");
                                 if (fmatt != null && key != null && fmatt == "00001")
@@ -218,7 +231,20 @@ namespace RCSFlowReaderWPF
         }
         private async void StartRead()
         {
-           await ReadRCSFlowInfo();
+            _startTime = DateTime.Now;
+            var timer = new DispatcherTimer
+            {
+                Interval = TimeSpan.FromMilliseconds(100),
+                IsEnabled = true
+            };
+            timer.Tick += (s, e) => {
+                Seconds = (int)(DateTime.Now - _startTime).TotalSeconds;
+            };
+            timer.Start();
+
+            await ReadRCSFlowInfo();
+            timer.Stop();
+
             using (var stream = new StreamWriter("s:/output2.xml"))
             {
                 foreach (var flow in flowdic)
@@ -240,6 +266,7 @@ namespace RCSFlowReaderWPF
                     stream.WriteLine("</F>");
                 }
             }
+            timer.Stop();
             FlowDone = true;
         }
 

@@ -10,19 +10,27 @@
         <local:RCSViewModel/>
     </Window.DataContext>
     <Grid>
-        <StackPanel Margin="0,18,0.4,-17.6">
+        <StackPanel>
             <StackPanel Orientation="Horizontal">
-                <TextBlock Text="Number of F Elements" HorizontalAlignment="Center"/>
-                <TextBlock Margin="10,0,0,0" Text="{Binding FElementRelevantCount}" HorizontalAlignment="Center"/>
-                <TextBlock Margin="10,0,0,0" Text="{Binding FElementTotalCount}" HorizontalAlignment="Center"/>
+                <TextBlock Text="Number of Relevant F Elements" HorizontalAlignment="Center"/>
+                <TextBlock Margin="10,0,0,0" Text="{Binding FElementRelevantCount, StringFormat={}{0:n0}}" HorizontalAlignment="Center"/>
+            </StackPanel>
+            
+            <StackPanel Orientation="Horizontal">
+                <TextBlock Text="Total Number of F Elements" HorizontalAlignment="Center"/>
+                <TextBlock Margin="10,0,0,0" Text="{Binding FElementTotalCount, StringFormat={}{0:n0}}" HorizontalAlignment="Center"/>
             </StackPanel>
 
+           
             <StackPanel Orientation="Horizontal">
                 <TextBlock Text="Number of T Elements" HorizontalAlignment="Center"/>
                 <TextBlock Margin="10,0,0,0" Text="{Binding TElementCount, StringFormat={}{0:n0}}" HorizontalAlignment="Center"/>
             </StackPanel>
-            
-            <TextBlock Text="{Binding FlowDone}"/>
+
+            <StackPanel Orientation="Horizontal">
+                <TextBlock Text="Total number of seconds taken" HorizontalAlignment="Center"/>
+                <TextBlock Margin="10,0,0,0" Text="{Binding Seconds, StringFormat={}{0:n0}}" HorizontalAlignment="Center"/>
+            </StackPanel>
 
             <StackPanel>
                 <TextBlock Text="{Binding MemoryUsage, StringFormat=Memory Usage: {0} MB}"/>
